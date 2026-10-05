@@ -1,13 +1,11 @@
 import numpy as np
-from matplotlib import colors
 from sklearn import svm 
-from sklearn import model_selection
 
 
 def classifier() -> svm.SVC :
     """ 构建分类器函数 """
     clf = svm.SVC(
-        C=0.8, # 误差项惩罚系数：对于某次“错误”，修正力度有多大
+        C=0.8, # 误分类惩罚系数，控制间隔大小与训练误差之间的权衡
         kernel='linear', # 设置核函数：当前为'Linear'
         decision_function_shape='ovr' # 决策函数：计算分类分数；ovr本质上是ovo（两两比较）
     )
@@ -17,6 +15,19 @@ def classifier() -> svm.SVC :
 def train(clf :svm.SVC, x_train: np.ndarray, y_train: np.ndarray) -> None :
     """ SVM训练函数 """
     clf.fit(x_train, y_train.ravel()) # ravel()将y_train展开成一维行向量
+
+
+def train_and_evaluate(
+        x_train: np.ndarray, y_train: np.ndarray,
+        x_test: np.ndarray, y_test: np.ndarray, feature_name: str
+        ) -> svm.SVC:
+    """每组特征独立训练一个模型，使用相同参数并输出对应准确率。"""
+    clf = classifier()
+    train(clf, x_train, y_train)
+    print('\n================ %s (%d features) ================'
+          % (feature_name, x_train.shape[1]))
+    print_accuracy(clf, x_train, y_train, x_test, y_test)
+    return clf
 
 
 def show_accuracy(y_predict: np.ndarray, y_trian: np.ndarray, tip: str) -> None :
@@ -43,6 +54,5 @@ def print_accuracy(
     show_accuracy(clf.predict(x_train), y_train, 'traing data') # 训练集准确率（显式）
     show_accuracy(clf.predict(x_test), y_test, 'testing data') # 测试集准确率（显式）
     
-    # 计算决策函数的值 表示x到各个分割平面的距离
+    # ovr 返回各类别的决策分数，不是概率，也不是各分割面的几何距离
     print('decision_function:\n', clf.decision_function(x_train))
-

@@ -8,7 +8,7 @@ from sklearn import svm
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 
-def draw(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray) -> None :   
+def draw(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray) -> None:
     """绘制原萼片模型的二维决策区域。"""
     _draw_2d(clf, x, y, x_test, ('sepal length', 'sepal width'),
              'Iris SVM: sepal features', 'SVM_sorting.jpg')

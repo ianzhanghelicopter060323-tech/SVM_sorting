@@ -2,6 +2,7 @@ from pathlib import Path
 
 import numpy as np
 from sklearn import model_selection
+from sklearn.preprocessing import StandardScaler
 
 
 def iris_type(s) :
@@ -27,6 +28,21 @@ def iris_load_all_data() -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
     return _load_features(slice(0, 4))
 
 
+def iris_load_data_sigmoid() -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+    """sigmoid 实验：准备标准化后的萼片长度、宽度。"""
+    return _load_feature_sigmoid(slice(0, 2))
+
+
+def iris_load_petal_data_sigmoid() -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+    """sigmoid 实验：准备标准化后的花瓣长度、宽度。"""
+    return _load_feature_sigmoid(slice(2, 4))
+
+
+def iris_load_all_data_sigmoid() -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+    """sigmoid 实验：准备标准化后的全部四个特征。"""
+    return _load_feature_sigmoid(slice(0, 4))
+
+
 def _load_features(feature_slice: slice) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
     """三组实验共用读取和划分逻辑，只改变输入特征。"""
 
@@ -49,3 +65,15 @@ def _load_features(feature_slice: slice) -> "tuple[np.ndarray, np.ndarray, np.nd
         test_size=0.2   # 20%样本作为测试集， 80%样本作为训练集
         )
     return x, y, x_train, x_test, y_train, y_test
+
+def _load_feature_sigmoid(feature_slice: slice) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+    """复用原数据划分，仅用训练集拟合标准化参数，返回顺序与原函数一致。"""
+    x, y, x_train, x_test, y_train, y_test = _load_features(feature_slice)
+    
+    scaler = StandardScaler()
+    x_train_scaled = scaler.fit_transform(x_train)
+    # 测试集和全体绘图样本沿用训练集的均值、标准差，避免数据泄漏。
+    x_test_scaled = scaler.transform(x_test)
+    x_scaled = scaler.transform(x)
+    # 三份特征处于同一标准化坐标系，标签和样本顺序保持不变。
+    return x_scaled, y, x_train_scaled, x_test_scaled, y_train, y_test

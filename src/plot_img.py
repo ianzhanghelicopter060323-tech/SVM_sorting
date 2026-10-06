@@ -8,28 +8,30 @@ from sklearn import svm
 from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
 
 
-def draw(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray) -> None:
+def draw(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray,
+         standardized: bool = False) -> None:
     """绘制原萼片模型的二维决策区域。"""
     _draw_2d(clf, x, y, x_test, ('sepal length', 'sepal width'),
-             'Iris SVM: sepal features', 'SVM_sorting.jpg')
+             'Iris SVM: sepal features', 'SVM_sorting.jpg', standardized)
 
 
-def draw_petal(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray) -> None:
+def draw_petal(clf: svm.SVC, x: np.ndarray, y: np.ndarray, x_test: np.ndarray,
+               standardized: bool = False) -> None:
     """绘制花瓣模型的二维决策区域，坐标轴对应花瓣特征。"""
     _draw_2d(clf, x, y, x_test, ('petal length', 'petal width'),
-             'Iris SVM: petal features', 'SVM_petal.jpg')
+             'Iris SVM: petal features', 'SVM_petal.jpg', standardized)
 
 
-def _save_and_show(fig, filename: str) -> None:
-    """按项目位置保存，先保存再显示，关闭后释放画布。"""
-    output_dir = Path(__file__).resolve().parent.parent / 'pics'
+def _save_and_show(fig, filename: str, kernel: str) -> None:
+    """按核类型保存到 pics/<kernel>/，先保存再显示，关闭后释放画布。"""
+    output_dir = Path(__file__).resolve().parent.parent / 'pics' / kernel
     output_dir.mkdir(parents=True, exist_ok=True)
     fig.savefig(output_dir / filename, dpi=150, bbox_inches='tight')
     plt.show()
     plt.close(fig)
 
 
-def _draw_2d(clf, x, y, x_test, iris_feature, title, filename) -> None:
+def _draw_2d(clf, x, y, x_test, iris_feature, title, filename, standardized=False) -> None:
     """两个二维模型共用绘图逻辑，背景与散点使用一致的类别颜色。"""
     fig = plt.figure(figsize=(8, 6), constrained_layout=True)
     # 开始画图 
@@ -55,11 +57,13 @@ def _draw_2d(clf, x, y, x_test, iris_feature, title, filename) -> None:
     plt.scatter(x[:, 0], x[:, 1], c=np.squeeze(y), edgecolor='k', s=50,
                 cmap=cm_dark, vmin=0, vmax=2)
     plt.scatter(x_test[:, 0], x_test[:, 1], s=120, facecolor='none', edgecolor='k', zorder=10)
-    plt.xlabel(iris_feature[0] + ' (cm)', fontsize=14)
-    plt.ylabel(iris_feature[1] + ' (cm)', fontsize=14)
+    # 标准化数据已无厘米单位；网格和散点都处于标准化坐标系。
+    unit = ' (standardized)' if standardized else ' (cm)'
+    plt.xlabel(iris_feature[0] + unit, fontsize=14)
+    plt.ylabel(iris_feature[1] + unit, fontsize=14)
     plt.xlim(x1_min, x1_max)
     plt.ylim(x2_min, x2_max)
-    plt.title(title + '\nAll samples; circles mark test samples', fontsize=15)
+    plt.title(title + ' | kernel=' + clf.kernel + '\nAll samples; circles mark test samples', fontsize=15)
     plt.legend(
         handles=[
             Line2D([0], [0], marker='o', color='w', label='Iris-setosa',
@@ -74,10 +78,13 @@ def _draw_2d(clf, x, y, x_test, iris_feature, title, filename) -> None:
         loc='best',
     )
     plt.grid()
-    _save_and_show(fig, filename)
+    if standardized:
+        filename = Path(filename).stem + '_standardized_' + clf.kernel + '.jpg'
+    _save_and_show(fig, filename, clf.kernel)
 
 
-def draw_all_features(clf: svm.SVC, x_test: np.ndarray, y_test: np.ndarray) -> None:
+def draw_all_features(clf: svm.SVC, x_test: np.ndarray, y_test: np.ndarray,
+                      standardized: bool = False) -> None:
     """展示四特征模型的测试结果：二维投影和混淆矩阵。
 
     预测时传入完整四列；花瓣坐标仅用于展示样本位置。
@@ -96,8 +103,9 @@ def draw_all_features(clf: svm.SVC, x_test: np.ndarray, y_test: np.ndarray) -> N
                    vmin=0, vmax=2, edgecolor='k', s=65)
         ax.scatter(x_test[wrong, 2], x_test[wrong, 3], marker='x',
                    color='k', s=130, linewidths=2, label='Misclassified')
-        ax.set_xlabel('petal length (cm)')
-        ax.set_ylabel('petal width (cm)')
+        unit = ' (standardized)' if standardized else ' (cm)'
+        ax.set_xlabel('petal length' + unit)
+        ax.set_ylabel('petal width' + unit)
         ax.set_title(title)
         ax.grid(alpha=0.3)
     handles = [Line2D([0], [0], marker='o', linestyle='none', color=color,
@@ -110,7 +118,10 @@ def draw_all_features(clf: svm.SVC, x_test: np.ndarray, y_test: np.ndarray) -> N
     ConfusionMatrixDisplay(matrix, display_labels=class_names).plot(
         ax=axes[2], cmap='Blues', colorbar=False, values_format='d')
     axes[2].set_title('Test confusion matrix')
-    fig.suptitle('Iris SVM: all 4 features | Test accuracy: %.2f%% (%d/%d)\n'
+    fig.suptitle('Iris SVM: all 4 features | kernel=%s | Test accuracy: %.2f%% (%d/%d)\n'
                  'Scatter plots: petal-coordinate projections of test samples'
-                 % (100 * accuracy, np.sum(~wrong), len(y_true)), fontsize=14)
-    _save_and_show(fig, 'SVM_all_features.jpg')
+                 % (clf.kernel, 100 * accuracy, np.sum(~wrong), len(y_true)), fontsize=14)
+    filename = 'SVM_all_features.jpg'
+    if standardized:
+        filename = 'SVM_all_features_standardized_' + clf.kernel + '.jpg'
+    _save_and_show(fig, filename, clf.kernel)

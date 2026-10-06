@@ -2,27 +2,27 @@ from typing import Tuple
 
 import numpy as np
 from sklearn import svm 
+from typing import Literal
 
 
-def classifier() -> svm.SVC :
+def classifier(kernel: Literal['linear', 'poly', 'rbf', 'sigmoid']) -> svm.SVC :
     """ 构建分类器函数 """
     clf = svm.SVC(
         C=0.8, # 误分类惩罚系数，控制间隔大小与训练误差之间的权衡
-        kernel='linear', # 可选内置核：linear、poly、rbf、sigmoid
+        kernel=kernel, # 可选内置核：linear、poly、rbf、sigmoid
         decision_function_shape='ovr' # 决策函数：计算分类分数；ovr本质上是ovo（两两比较）
     )
     return clf
 
 
-def classifier_change_c(c_in: float) -> svm.SVC :
+def classifier_change_c(c_in: float, kernel: Literal['linear', 'poly', 'rbf', 'sigmoid']) -> svm.SVC :
     """ 构建分类器函数， 传入C的值 """
     clf = svm.SVC(
         C=c_in, # 误分类惩罚系数，控制间隔大小与训练误差之间的权衡
-        kernel='linear', # 可选内置核：linear、poly、rbf、sigmoid
+        kernel=kernel, # 可选内置核：linear、poly、rbf、sigmoid
         decision_function_shape='ovr' # 决策函数：计算分类分数；ovr本质上是ovo（两两比较）
     )
     return clf
-
 
 def train(clf :svm.SVC, x_train: np.ndarray, y_train: np.ndarray) -> None :
     """ SVM训练函数 """
@@ -31,10 +31,11 @@ def train(clf :svm.SVC, x_train: np.ndarray, y_train: np.ndarray) -> None :
 
 def train_and_evaluate(
         x_train: np.ndarray, y_train: np.ndarray,
-        x_test: np.ndarray, y_test: np.ndarray, feature_name: str
+        x_test: np.ndarray, y_test: np.ndarray, feature_name: str,
+        kernel: Literal['linear', 'poly', 'rbf', 'sigmoid']
         ) -> svm.SVC:
     """每组特征独立训练一个模型，使用相同参数并输出对应准确率。"""
-    clf = classifier()
+    clf = classifier(kernel)
     train(clf, x_train, y_train)
     print('\n================ %s (%d features) ================'
           % (feature_name, x_train.shape[1]))
@@ -45,11 +46,11 @@ def train_and_evaluate(
 def train_and_evaluate_change_c(
         x_train: np.ndarray, y_train: np.ndarray,
         x_test: np.ndarray, y_test: np.ndarray, feature_name: str,
-        c_in: float
+        c_in: float, kernel: Literal['linear', 'poly', 'rbf', 'sigmoid']
         ) -> Tuple[svm.SVC, float]:
     """每组特征独立训练一个模型, 使用相同参数并输出对应准确率。改变c实验"""
 
-    clf = classifier_change_c(c_in)
+    clf = classifier_change_c(c_in, kernel)
     train(clf, x_train, y_train)
     print('\n================ %s (%d features, C=%g) ================'
           % (feature_name, x_train.shape[1], c_in))
